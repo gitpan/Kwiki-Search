@@ -2,14 +2,13 @@ package Kwiki::Search;
 use strict;
 use warnings;
 use Kwiki::Plugin '-Base';
-use Kwiki::Installer '-base';
+use mixin 'Kwiki::Installer';
 use Kwiki ':char_classes';
-our $VERSION = '0.10';
+our $VERSION = '0.11';
 
 const class_id => 'search';
 const class_title => 'Search';
 const cgi_class => 'Kwiki::Search::CGI';
-const screen_template => 'search_screen.html';
 const css_file => 'search.css';
 
 sub register {
@@ -21,7 +20,16 @@ sub register {
 }
 
 sub search {
-    $self->render_screen(pages => $self->perform_search);
+    my $pages = $self->perform_search;
+    my $term = $self->cgi->search_term;
+    my $num = @$pages;
+    my $screen_title = length($term)
+    ? "$num Pages Matching '$term'"
+    : 'All Pages';
+    $self->render_screen(
+        screen_title => $screen_title,
+        pages => $pages,
+    );
 }
 
 sub perform_search {
@@ -38,7 +46,7 @@ sub perform_search {
 package Kwiki::Search::CGI;
 use Kwiki::CGI '-base';
 
-cgi 'search_term';
+cgi search_term => '-utf8';
 
 1;
 
@@ -74,10 +82,8 @@ __template/tt2/search_box.html__
 <input type="hidden" name="action" value="search" />
 </form>
 <!-- END search_box.html -->
-__template/tt2/search_screen.html__
-<!-- BEGIN search_screen.html -->
-[% screen_title = 'Search Results' %]
-[% INCLUDE kwiki_layout_begin.html %]
+__template/tt2/search_content.html__
+<!-- BEGIN search_content.html -->
 <table class="search">
 [% FOR page = pages %]
 <tr>
@@ -87,8 +93,7 @@ __template/tt2/search_screen.html__
 </tr>
 [% END %]
 </table>
-[% INCLUDE kwiki_layout_end.html %]
-<!-- END search_screen.html -->
+<!-- END search_content.html -->
 __css/search.css__
 table.search {
     width: 100%;
